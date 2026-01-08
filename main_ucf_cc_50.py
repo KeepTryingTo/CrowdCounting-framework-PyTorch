@@ -196,6 +196,7 @@ def main_worker(rank, device_ids, args, fold_info, fold_idx):
             epoch,
             global_loss,
             count_loss,
+            args.d_ratio,
             device
         )
         # TODO 保存每一个epochs的mae和mse

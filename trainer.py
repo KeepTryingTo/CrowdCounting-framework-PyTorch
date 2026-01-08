@@ -7,7 +7,7 @@
 """
 
 import torch
-
+import torch.nn.functional as F
 
 def train_epoch_one(
         args,
@@ -18,6 +18,7 @@ def train_epoch_one(
         epoch,
         global_loss,
         count_loss,
+        d_ratio,
         device
 ):
     for step, (imgs, dens) in enumerate(train_dataloader):
@@ -28,6 +29,17 @@ def train_epoch_one(
         optimizer.zero_grad()
         dens = dens.squeeze()
         pred_dens = pred_dens.squeeze()
+
+        if d_ratio != 1:
+            while pred_dens.dim() < 4:
+                pred_dens = pred_dens.unsqueeze(dim=0)
+            _, _, h1, w1 = pred_dens.size()
+            pred_dens = F.interpolate(
+                pred_dens,
+                size=(h1 * d_ratio, w1 * d_ratio),
+                mode="bilinear",
+                align_corners=True
+            )
 
         g_loss = global_loss(dens, pred_dens)
         c_loss = count_loss(torch.sum(dens), torch.sum(pred_dens))

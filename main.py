@@ -160,6 +160,7 @@ def main_worker(rank, device_ids, args):
             epoch,
             global_loss,
             count_loss,
+            args.d_ratio,
             device
         )
         # TODO save MAE and MSE of every epoch

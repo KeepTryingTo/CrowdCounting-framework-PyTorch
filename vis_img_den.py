@@ -213,7 +213,7 @@ def process(img_path, density_pred, gt_density_map, save_path):
         alpha=0.8,
         save_path=save_path
     )
-def divided_image_patch(inputs, original_w, original_h, crop_size, device):
+def divided_image_patch(inputs, original_w, original_h, crop_size, d_ratio, device):
     """
     分块处理图像并预测密度图
     Args:
@@ -290,6 +290,17 @@ def divided_image_patch(inputs, original_w, original_h, crop_size, device):
             gs, gt = i, min(len(crop_imgs), i + batch_size)
             crop_batch = crop_imgs[gs:gt]
             pred = model(crop_batch)
+            if d_ratio != 1:
+                while pred.dim() < 4:
+                    pred = pred.unsqueeze(dim = 0)
+                _,_,h1, w1 = pred.size()
+                pred = F.interpolate(
+                    pred,
+                    size=(h1 * d_ratio, w1 * d_ratio),
+                    mode="bilinear",
+                    align_corners=True
+                )
+
             # 如果预测块是填充的，裁剪回原始块尺寸
             idx = i
             for batch_idx in range(pred.shape[0]):
@@ -345,7 +356,7 @@ def divided_image_patch(inputs, original_w, original_h, crop_size, device):
     return outputs
 
 
-def main(img_dir, npy_dir, save_dir):
+def main(args, img_dir, npy_dir, save_dir):
     os.makedirs(save_dir, exist_ok=True)
 
     epoch_res = []
@@ -359,7 +370,9 @@ def main(img_dir, npy_dir, save_dir):
         print('width = {}  height = {}'.format(wd, ht))
         if wd >= 1024 or ht >= 1024:
             pred_map = divided_image_patch(
-                img, wd, ht, 1024, device
+                img, wd, ht, 1024,
+                d_ratio=args.d_ratio,
+                device = device
             )
         else:
             image = img_transformer(img)
@@ -410,7 +423,7 @@ if __name__ == "__main__":
         normalizer
     ])
 
-    main(img_root, npy_root, save_dir)
+    main(args, img_root, npy_root, save_dir)
     pass
 
 
